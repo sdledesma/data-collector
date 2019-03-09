@@ -1,0 +1,2 @@
+(ns data-collector.model)
+
