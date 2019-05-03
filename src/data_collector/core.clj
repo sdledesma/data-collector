@@ -10,7 +10,11 @@
                                                   thread
                                                   alts! alts!!]]))
 
-(defn- safe-call [{fun     :fn
+(defn- safe-call
+  "call function defined by :fn in the argument map with the arguments defined in the :args key and returns its value.
+
+  If calling the function throws an exception, it returns the value stored under :default"
+  [{fun     :fn
                    args    :args
                    default :default}]
   (try (apply fun args)
@@ -23,15 +27,15 @@
 (defn create-collector
   "Creates a collector that queries query-fn using query-args as its arguments every x milliseconds where x is a random number between 0 and max-delay"
   [max-delay query-fn & query-args]
-  (let [collector      (atom nil)
+  (let [data          (atom nil)
         comms-channel (chan 1)]
     (go
       (loop []
         (let [delay     (rand-int max-delay)
               scheduler (timeout delay)]
-          (reset! collector (safe-call {:fn query-fn
-                                        :args query-args
-                                        :default @collector}))
+          (reset! data (safe-call {:fn query-fn
+                                   :args query-args
+                                   :default @data}))
           (let [[v ch] (alts! [scheduler
                                comms-channel])]
             (if (= ch comms-channel)
@@ -39,12 +43,12 @@
                 (cond
                   (= cmd "bye")
                   (do (println "Received" cmd ", shutting down collector")
-                      (reset! collector nil))
+                      (reset! data nil))
                   :else
                   (do (printf "After receiving %s, Collector awkwardly waves back at you and gets back to work.\n" cmd)
                       (recur))))
               (recur))))))
-    {::m/state   collector
+    {::m/state   data
      ::m/channel comms-channel}))
 
 (s/fdef get-data :args (s/cat :collector ::m/collector))
