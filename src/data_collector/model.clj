@@ -3,3 +3,6 @@
 
 (s/def ::collector (s/keys :req [::state ::channel] :opt [::callback]))
 (s/def ::collector-command (s/keys :req [::command]))
+
+(defn collector? [possible-collector]
+  (s/valid? ::collector possible-collector))
